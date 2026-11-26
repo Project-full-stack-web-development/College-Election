@@ -1,13 +1,23 @@
-function Header() {
-    return (
-        <header>
-            <h1>Election Voting System</h1>
-            <p>Online Voting Application</p>
+export default function Header({ user, onLogout }) {
+  return (
+    <header
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        borderBottom: '1px solid #ccc',
+        paddingBottom: '12px',
+        marginBottom: '24px',
+      }}
+    >
+      <h1 style={{ margin: 0 }}>Campus Poll</h1>
 
-            <button>Login</button>
-            <button>Register</button>
-        </header>
-    );
+      {user && (
+        <div>
+          <strong>{user.name}</strong> ({user.role}){' '}
+          <button onClick={onLogout}>Log Out</button>
+        </div>
+      )}
+    </header>
+  );
 }
-
-export default Header;
