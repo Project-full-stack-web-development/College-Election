@@ -1,0 +1,14 @@
+[
+  {
+    "id": "elec-1",
+    "title": "Student Council President 2027",
+    "status": "open",
+    "candidates": [
+      { "id": "cand-1", "name": "Akhil", "votes": 0 },
+      { "id": "cand-2", "name": "Manisha", "votes": 0 },
+      { "id": "cand-3", "name": "Naseer", "votes": 0 },
+      { "id": "cand-4", "name": "Divya", "votes": 0 }
+    ],
+    "votedUserIds": []
+  }
+]
