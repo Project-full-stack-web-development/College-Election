@@ -1,0 +1,16 @@
+[
+  {
+    "id": "s01",
+    "name": "Student One",
+    "email": "s01@m.fi",
+    "password": "student123",
+    "role": "student"
+  },
+  {
+    "id": "a01",
+    "name": "Election Admin",
+    "email": "a01@m.fi",
+    "password": "admin123",
+    "role": "admin"
+  }
+]
