@@ -4,21 +4,6 @@ const User = require('../models/User');
 
 const router = express.Router();
 
-const initialVoterStatus =
-  safeRole === 'student' ? 'Pending' : voterIdStatus || 'Verified';
-
-const user = await User.create({
-  userId: userId.trim(),
-  name: name.trim(),
-  email: email.trim().toLowerCase(),
-  password,
-  role: safeRole,
-  birthDate,
-  regNumber: regNumber || userId.trim(),
-  departmentOrArea,
-  voterIdStatus: initialVoterStatus,
-});
-
 const signToken = (user) =>
   jwt.sign(
     { id: user._id, role: user.role },
@@ -56,6 +41,12 @@ router.post('/register', async (req, res) => {
     }
 
     const safeRole = role === 'admin' ? 'admin' : 'student';
+    const initialVoterStatus =
+      safeRole === 'student'
+        ? 'Pending'
+        : ['Verified', 'Pending'].includes(voterIdStatus)
+        ? voterIdStatus
+        : 'Verified';
 
     const user = await User.create({
       userId: userId.trim(),
@@ -66,7 +57,7 @@ router.post('/register', async (req, res) => {
       birthDate,
       regNumber: regNumber || userId.trim(),
       departmentOrArea,
-      voterIdStatus: voterIdStatus || 'Verified',
+      voterIdStatus: initialVoterStatus,
     });
 
     const token = signToken(user);
