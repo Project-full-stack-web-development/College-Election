@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const User = require('../models/User');
 const { protect, authorizeRoles } = require('../middleware/auth');
 
@@ -20,18 +21,23 @@ router.get('/', protect, authorizeRoles('admin'), async (req, res) => {
   }
 });
 
-
 router.patch('/:id/status', protect, authorizeRoles('admin'), async (req, res) => {
-  try {
-    const { voterIdStatus } = req.body;
-    if (!['Verified', 'Pending'].includes(voterIdStatus)) {
-      return res
-        .status(400)
-        .json({ message: 'voterIdStatus must be "Verified" or "Pending"' });
-    }
+  const { id } = req.params;
+  const { voterIdStatus } = req.body;
 
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: 'Invalid user ID' });
+  }
+
+  if (!['Verified', 'Pending'].includes(voterIdStatus)) {
+    return res
+      .status(400)
+      .json({ message: 'voterIdStatus must be "Verified" or "Pending"' });
+  }
+
+  try {
     const updatedUser = await User.findByIdAndUpdate(
-      req.params.id,
+      id,
       { voterIdStatus },
       { new: true }
     ).select('-password');
@@ -40,20 +46,30 @@ router.patch('/:id/status', protect, authorizeRoles('admin'), async (req, res) =
       return res.status(404).json({ message: 'User not found' });
     }
 
-    res.json({ message: `Voter status updated to ${voterIdStatus}`, user: updatedUser });
+    res.json({
+      message: `Voter status updated to ${voterIdStatus}`,
+      user: updatedUser,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
 
-
 router.delete('/:id', protect, authorizeRoles('admin'), async (req, res) => {
+  const { id } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: 'Invalid user ID' });
+  }
+
   try {
-    if (req.params.id === String(req.user._id)) {
-      return res.status(400).json({ message: 'Cannot delete your own admin account' });
+    if (id === String(req.user._id)) {
+      return res
+        .status(400)
+        .json({ message: 'Cannot delete your own admin account' });
     }
 
-    const deleted = await User.findByIdAndDelete(req.params.id);
+    const deleted = await User.findByIdAndDelete(id);
     if (!deleted) {
       return res.status(404).json({ message: 'User not found' });
     }
