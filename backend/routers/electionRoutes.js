@@ -18,7 +18,10 @@ router.get('/', protect, async (req, res) => {
     const userVotes = await Vote.find({ voterId: req.user._id }).lean();
     const votedElectionIds = new Set(userVotes.map((v) => String(v.electionId)));
 
-    const totalVotersCount = await User.countDocuments({ role: 'student' });
+    const totalVotersCount = await User.countDocuments({
+      role: 'student',
+      voterIdStatus: 'Verified',
+    });
 
     const enriched = elections.map((election) => {
       const totalVotes =
@@ -55,7 +58,8 @@ router.post('/', protect, authorizeRoles('admin'), async (req, res) => {
 
     if (!title || !position || !departmentOrTerm || !startDate || !endDate) {
       return res.status(400).json({
-        message: 'title, position, departmentOrTerm, startDate, and endDate are required',
+        message:
+          'title, position, departmentOrTerm, startDate, and endDate are required',
       });
     }
 
@@ -64,7 +68,9 @@ router.post('/', protect, authorizeRoles('admin'), async (req, res) => {
           .map((c) => ({
             name: typeof c === 'string' ? c.trim() : (c.name || '').trim(),
             subtitleOrParty:
-              typeof c === 'string' ? '' : (c.subtitleOrParty || c.party || '').trim(),
+              typeof c === 'string'
+                ? ''
+                : (c.subtitleOrParty || c.party || '').trim(),
             votesCount: 0,
           }))
           .filter((c) => c.name.length > 0)
@@ -104,6 +110,13 @@ router.post('/:id/vote', protect, authorizeRoles('student'), async (req, res) =>
   }
 
   try {
+    if (req.user.voterIdStatus !== 'Verified') {
+      return res.status(403).json({
+        message:
+          'Your student registration is still Pending admin approval. You can vote once verified.',
+      });
+    }
+
     const election = await Election.findById(id);
     if (!election) {
       return res.status(404).json({ message: 'Election not found' });
@@ -114,23 +127,31 @@ router.post('/:id/vote', protect, authorizeRoles('student'), async (req, res) =>
       election.status === 'closed' ||
       (election.endDate && now > new Date(election.endDate))
     ) {
-      return res.status(400).json({ message: 'Voting is closed for this election' });
+      return res
+        .status(400)
+        .json({ message: 'Voting is closed for this election' });
     }
 
     const isNota = choiceType === 'NOTA' || candidateId === 'NOTA';
 
     if (!isNota) {
       if (!candidateId || !mongoose.Types.ObjectId.isValid(candidateId)) {
-        return res.status(400).json({ message: 'Valid candidateId or NOTA is required' });
+        return res
+          .status(400)
+          .json({ message: 'Valid candidateId or NOTA is required' });
       }
       const candidateExists = election.candidates.some(
         (c) => String(c._id) === String(candidateId)
       );
       if (!candidateExists) {
-        return res.status(404).json({ message: 'Selected candidate not found in election' });
+        return res
+          .status(404)
+          .json({ message: 'Selected candidate not found in election' });
       }
     } else if (!election.allowNota) {
-      return res.status(400).json({ message: 'NOTA is not enabled for this election' });
+      return res
+        .status(400)
+        .json({ message: 'NOTA is not enabled for this election' });
     }
 
     let createdVote;
@@ -185,7 +206,9 @@ router.patch('/:id/status', protect, authorizeRoles('admin'), async (req, res) =
     return res.status(400).json({ message: 'Invalid election ID' });
   }
   if (!['open', 'closed'].includes(status)) {
-    return res.status(400).json({ message: 'Status must be "open" or "closed"' });
+    return res
+      .status(400)
+      .json({ message: 'Status must be "open" or "closed"' });
   }
 
   try {
@@ -216,7 +239,10 @@ router.get('/:id/results', protect, async (req, res) => {
       return res.status(404).json({ message: 'Election not found' });
     }
 
-    const totalVotersCount = await User.countDocuments({ role: 'student' });
+    const totalVotersCount = await User.countDocuments({
+      role: 'student',
+      voterIdStatus: 'Verified',
+    });
     const candidateTotal = election.candidates.reduce(
       (sum, c) => sum + (c.votesCount || 0),
       0
